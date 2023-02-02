@@ -21,7 +21,7 @@ namespace Oxide.Plugins
 
         private void InitializeZoneManagerApi(PluginManager manager)
         {
-            _zoneManagerApi = ZoneManagerApi.CreateInstance(manager);
+            _zoneManagerApi = ZoneManagerApi.CreateInstance(manager, OnPlayerEnterClaimableLand);
             if (_zoneManagerApi == null)
             {
                 Puts("ZoneManager is not loaded! get it here https://umod.org/plugins/zone-manager");

@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using CompanionServer.Handlers;
-
-namespace Oxide.Plugins
+﻿namespace Oxide.Plugins
 {
     using Oxide.Core.Plugins;
     using System.Numerics;
-
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     public partial class Factions
     {
 
-        public class ZoneManagerApi
+        private class ZoneManagerApi
         {
 
             private readonly ZoneManager _zoneManager;
@@ -32,13 +29,15 @@ namespace Oxide.Plugins
                 return zoneManager == null ? null : new ZoneManagerApi(zoneManager);
             }
 
+            public static Grid ParseZoneIdToGrid(string zoneId)
+            {
+                // Todo
+                return null;
+            }
+
             private ZoneManagerApi(ZoneManager zoneManager)
             {
                 _zoneManager = zoneManager;
-            }
-
-            public void HandlePlayerEnterZone(string zoneID, BasePlayer player)
-            {
             }
 
             private bool CreateOrUpdateZone(string zoneId, string name, Vector3 location, int radius)
