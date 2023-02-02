@@ -21,6 +21,9 @@
                 public const string CreateOrUpdateZone = "CreateOrUpdateZone";
                 public const string CreateOrUpdateZoneParameterName = "name";
                 public const string CreateOrUpdateZoneParameterRadius = "radius";
+
+                public const char GridPrefix = '_';
+                public const char GridRowColumnDelimiter = ';';
             }
 
             public static ZoneManagerApi CreateInstance(PluginManager manager)
@@ -29,12 +32,12 @@
                 return zoneManager == null ? null : new ZoneManagerApi(zoneManager);
             }
 
-            public static Grid ParseZoneIdToGrid(string zoneId)
+            public static bool TryParseGrid(string zoneId, out Grid result)
             {
                 // Todo
-                return null;
+                result = new Grid('A', 33);
+                return true;
             }
-
             private ZoneManagerApi(ZoneManager zoneManager)
             {
                 _zoneManager = zoneManager;
