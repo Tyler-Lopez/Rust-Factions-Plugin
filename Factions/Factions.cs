@@ -10,30 +10,19 @@ namespace Oxide.Plugins
     public partial class Factions : RustPlugin
     {
         #region Global Variables
-        private ZoneManagerApi _truePveApi;
-        private ZoneManagerApi _zoneManagerApi;
+        private IZoneManagerRepository _zoneManagerRepository;
         #endregion
 
         private void Loaded()
         {
             var manager = Manager;
-            InitializeTruePveApi(manager);
             InitializeZoneManagerApi(manager);
-        }
-
-        private void InitializeTruePveApi(PluginManager manager)
-        {
-            _zoneManagerApi = ZoneManagerApi.CreateInstance(manager);
-            if (_zoneManagerApi == null)
-            {
-                Puts("TruePVE is not loaded! Get it here https://umod.org/plugins/true-pve");
-            }
         }
 
         private void InitializeZoneManagerApi(PluginManager manager)
         {
-            _zoneManagerApi = ZoneManagerApi.CreateInstance(manager);
-            if (_zoneManagerApi == null)
+            _zoneManagerRepository = ZoneManagerRepository.CreateInstance(manager);
+            if (_zoneManagerRepository == null)
             {
                 Puts("ZoneManager is not loaded! Get it here https://umod.org/plugins/zone-manager");
             }
