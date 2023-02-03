@@ -5,16 +5,16 @@
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
-    public class Grids : IEnumerable<Grid>
+    public class Map : IEnumerable<Grid>
     {
-        private readonly float _width;
-        private readonly float _height;
+        private int _columns;
+        private int _rows;
+        private readonly float _size;
         private List<Grid> _grids;
 
-        public Grids(float width, float height)
+        public Map(int size)
         {
-            _width = width;
-            _height = height;
+            _size = size;
         }
 
         private static class Constants
@@ -22,12 +22,26 @@
             public const float GridCellSize = 146.3f;
         }
 
-        public static Vector2 GetGridCenter(Grid grid)
+        public Vector2 GetGridCenter(Grid grid)
         {
+            var centerOffset = Constants.GridCellSize / 2f;
+            var halfWidth = Mathf.Floor((_rows * Constants.GridCellSize) / 2f);
+            var halfHeight = Mathf.Floor((_rows * Constants.GridCellSize) / 2f);
+            var offset = (_size - (_rows * Constants.GridCellSize)) / 2f;
             return new Vector2(
-                 grid.GetColumnNumeric() * Constants.GridCellSize,
-                 grid.GetRow() * Constants.GridCellSize
+                (grid.GetColumnNumeric() * Constants.GridCellSize) - (halfWidth) - offset,
+                 (grid.GetRow() * Constants.GridCellSize * -1) + (halfHeight - offset)
             );
+        }
+
+        public static float GetGridWidth()
+        {
+            return Constants.GridCellSize;
+        }
+
+        public static float GetGridHeight()
+        {
+            return Constants.GridCellSize;
         }
 
         public IEnumerator<Grid> GetEnumerator()
@@ -40,12 +54,12 @@
             {
                 _grids = new List<Grid>();
 
-                var columns = Math.Round(_width / Constants.GridCellSize);
-                var rows = Math.Round(_height / Constants.GridCellSize);
+                _columns = (int)Mathf.Floor(_size / Constants.GridCellSize);
+                _rows = (int)Mathf.Floor(_size / Constants.GridCellSize);
 
-                for (byte row = 0; row < rows; row++)
+                for (byte row = 0; row < _rows; row++)
                 {
-                    for (byte column = 0; column < columns; column++)
+                    for (byte column = 0; column < _columns; column++)
                     {
                         _grids.Add(new Grid(row, column));
                         yield return _grids.Last();

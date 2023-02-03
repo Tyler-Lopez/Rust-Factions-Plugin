@@ -143,6 +143,9 @@
     <Reference Include="Rust.World">
       <HintPath>Ref\Rust.World.dll</HintPath>
     </Reference>
+    <Reference Include="System.Xml.XPath.XDocument">
+      <HintPath>Ref\System.Xml.XPath.XDocument.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Burst">
       <HintPath>Ref\Unity.Burst.dll</HintPath>
     </Reference>

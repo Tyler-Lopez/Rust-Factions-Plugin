@@ -1,12 +1,6 @@
 ﻿namespace Oxide.Plugins
 {
     using System.Text;
-    using Oxide.Core.Plugins;
-    using System.Numerics;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-
     public class Grid
     {
         private readonly byte _columnByte;

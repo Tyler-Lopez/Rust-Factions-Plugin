@@ -1,36 +1,22 @@
 ﻿namespace Oxide.Plugins
 {
-    using System;
-    using UnityEngine;
-    partial class Factions {
+    partial class Factions
+    {
         public void InitializeMapForNewWipe()
         {
-            var grids = new Grids(TerrainMeta.Size.x, TerrainMeta.Size.z);
-            foreach (var grid in grids)
+            Puts(ConVar.Server.worldsize.ToString());
+            Puts(TerrainMeta.Size.ToString());
+            var map = new Map(ConVar.Server.worldsize);
+            /** For the map-size, generate **/
+            foreach (var grid in map)
             {
-                Puts(grid.ToString());
-                Puts(Grids.GetGridCenter(grid).ToString());
+                if (grid.GetRow() == 0)
+                {
+                    Puts(grid.ToString());
+                    Puts(map.GetGridCenter(grid).ToString());
+                }
+
             }
-            /*
-            MapSize = Mathf.Floor(.x / CellSize) * CellSize;
-            MapWidth = Mathf.Floor(TerrainMeta.Size.x / CellSize) * CellSize;
-            MapHeight = Mathf.Floor(TerrainMeta.Size.z / CellSize) * CellSize;
-
-
-            NumberOfRows = (int)Math.Floor(MapHeight / (float)CellSize);
-            NumberOfColumns = (int)Math.Floor(MapWidth / (float)CellSize);
-
-            MapWidth = NumberOfColumns * CellSize;
-            MapHeight = NumberOfRows * CellSize;
-
-            MapOffsetX = TerrainMeta.Size.x - (NumberOfColumns * CellSize);
-            MapOffsetZ = TerrainMeta.Size.z - (NumberOfRows * CellSize);
-            RowIds = new string[NumberOfRows];
-            ColumnIds = new string[NumberOfColumns];
-            AreaIds = new string[NumberOfColumns, NumberOfRows];
-            Positions = new Vector3[NumberOfColumns, NumberOfRows];
-            Build();
-            */
         }
     }
 }
