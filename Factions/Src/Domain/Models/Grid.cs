@@ -39,6 +39,16 @@
             return _row;
         }
 
+        public byte GetColumnNumeric()
+        {
+            return _columnByte;
+        }
+
+        public string GetColumnString()
+        {
+            return _columnString;
+        }
+
         public override string ToString()
         {
             return $"{_columnString}{Constants.RowColumnDelimiter}{_row}";

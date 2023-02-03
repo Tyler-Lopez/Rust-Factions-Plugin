@@ -1,5 +1,4 @@
 ﻿// Requires: ZoneManager
-// Requires: TruePVE
 
 using Oxide.Core.Plugins;
 

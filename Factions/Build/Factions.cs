@@ -1,5 +1,4 @@
 ﻿// Requires: ZoneManager
-// Requires: TruePVE
 
 using Oxide.Core.Plugins;
 
@@ -132,6 +131,16 @@ namespace Oxide.Plugins
             return _row;
         }
 
+        public byte GetColumnNumeric()
+        {
+            return _columnByte;
+        }
+
+        public string GetColumnString()
+        {
+            return _columnString;
+        }
+
         public override string ToString()
         {
             return $"{_columnString}{Constants.RowColumnDelimiter}{_row}";
@@ -145,7 +154,7 @@ namespace Oxide.Plugins
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
-
+    using UnityEngine;
     public class Grids : IEnumerable<Grid>
     {
         private readonly float _width;
@@ -161,6 +170,14 @@ namespace Oxide.Plugins
         private static class Constants
         {
             public const float GridCellSize = 146.3f;
+        }
+
+        public static Vector2 GetGridCenter(Grid grid)
+        {
+            return new Vector2(
+                 grid.GetColumnNumeric() * Constants.GridCellSize,
+                 grid.GetRow() * Constants.GridCellSize
+            );
         }
 
         public IEnumerator<Grid> GetEnumerator()
@@ -263,6 +280,7 @@ namespace Oxide.Plugins
             foreach (var grid in grids)
             {
                 Puts(grid.ToString());
+                Puts(Grids.GetGridCenter(grid).ToString());
             }
             /*
             MapSize = Mathf.Floor(.x / CellSize) * CellSize;

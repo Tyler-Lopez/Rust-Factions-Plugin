@@ -9,6 +9,7 @@
             foreach (var grid in grids)
             {
                 Puts(grid.ToString());
+                Puts(Grids.GetGridCenter(grid).ToString());
             }
             /*
             MapSize = Mathf.Floor(.x / CellSize) * CellSize;
