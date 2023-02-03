@@ -12,20 +12,5 @@ namespace Oxide.Plugins
         #region Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
         #endregion
-
-        private void Loaded()
-        {
-            var manager = Manager;
-            InitializeZoneManagerApi(manager);
-        }
-
-        private void InitializeZoneManagerApi(PluginManager manager)
-        {
-            _zoneManagerRepository = ZoneManagerRepository.CreateInstance(manager);
-            if (_zoneManagerRepository == null)
-            {
-                Puts("ZoneManager is not loaded! Get it here https://umod.org/plugins/zone-manager");
-            }
-        }
     }
 }﻿
