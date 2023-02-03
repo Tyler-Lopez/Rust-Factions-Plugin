@@ -4,18 +4,15 @@
     {
         public void InitializeMapForNewWipe()
         {
-            Puts(ConVar.Server.worldsize.ToString());
-            Puts(TerrainMeta.Size.ToString());
+            // For each grid on the map create a ZoneManager zone for them
             var map = new Map(ConVar.Server.worldsize);
-            /** For the map-size, generate **/
             foreach (var grid in map)
             {
-                if (grid.GetRow() == 0)
-                {
-                    Puts(grid.ToString());
-                    Puts(map.GetGridCenter(grid).ToString());
-                }
-
+                _zoneManagerRepository.CreateZoneForGrid(
+                    grid: grid,
+                    center: map.GetGridCenter(grid),
+                    gridSize: Map.GetGridSize()
+                );
             }
         }
     }

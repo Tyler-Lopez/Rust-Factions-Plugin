@@ -14,7 +14,9 @@
             /// <param name="location"></param>
             /// <param name="radius"></param>
             /// <returns>Returns true if the zone is valid, else returns false if it was saved but not created (only reason would be that no position for the zone was set)</returns>
-            bool CreateOrUpdateZone(string zoneId, string name, Vector3 location, int radius);
+            bool CreateOrUpdateZoneCircular(string zoneId, string name, Vector3 location, int radius);
+
+            bool CreateOrUpdateZoneRectangular(string zoneId, string name, Vector3 location, int width, int height, int length);
 
             /// <summary>
             /// Erase a zone by ZoneID or name.
@@ -29,6 +31,8 @@
             /// <param name="player"></param>
             /// <returns>Returns a string[] of IDs for zones the specified player is currently in, or null if none found</returns>
             string[] GetPlayerZoneIds(BasePlayer player);
+
+            bool CreateZoneForGrid(Grid grid, Vector2 center, float gridSize);
         }
     }
 }

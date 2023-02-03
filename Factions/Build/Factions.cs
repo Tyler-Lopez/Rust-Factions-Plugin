@@ -41,10 +41,13 @@ namespace Oxide.Plugins
     using System.Linq;
     using System.Numerics;
     using Oxide.Core.Plugins;
+    using System;
+    using UnityEngine;
+    using UnityEngine.UIElements;
 
     partial class Factions
     {
-        private class ZoneManagerRepository : IZoneManagerRepository 
+        private class ZoneManagerRepository : IZoneManagerRepository
         {
             private readonly ZoneManager _zoneManager;
 
@@ -55,9 +58,18 @@ namespace Oxide.Plugins
                 public const string CreateOrUpdateZone = "CreateOrUpdateZone";
                 public const string CreateOrUpdateZoneParameterName = "name";
                 public const string CreateOrUpdateZoneParameterRadius = "radius";
+                public const string CreateOrUpdateZoneParameterSize = "size";
+
+                public const string CreateOrUpdateZoneParameterSizeValueFormat = "{0} {1} {2}";
+
+
+                public const char GridPrefix = '_';
+
+                public const int GridHeight = 2000;
             }
 
-            public static IZoneManagerRepository CreateInstance(PluginManager manager) {
+            public static IZoneManagerRepository CreateInstance(PluginManager manager)
+            {
                 var zoneManager = manager.GetPlugin(Constants.ZoneManagerPluginName) as ZoneManager;
                 return zoneManager == null ? null : new ZoneManagerRepository(zoneManager);
             }
@@ -67,7 +79,32 @@ namespace Oxide.Plugins
                 _zoneManager = zoneManager;
             }
 
-            bool IZoneManagerRepository.CreateOrUpdateZone(string zoneId, string name, UnityEngine.Vector3 location, int radius)
+            bool IZoneManagerRepository.CreateZoneForGrid(Grid grid, UnityEngine.Vector2 center, float gridSize)
+            {
+                var adjGridSize = (int)Mathf.Floor(gridSize);
+                return (this as IZoneManagerRepository).CreateOrUpdateZoneRectangular(
+                    $"{Constants.GridPrefix}{grid}",
+                    grid.ToString(),
+                    center,
+                    adjGridSize,
+                    Constants.GridHeight,
+                    adjGridSize
+                    );
+            }
+
+
+            bool IZoneManagerRepository.CreateOrUpdateZoneRectangular(string zoneId, string name, UnityEngine.Vector3 location, int width, int height, int length)
+            {
+                var argsMap = new Dictionary<string, string>
+                {
+                    [Constants.CreateOrUpdateZoneParameterName] = name,
+                    [Constants.CreateOrUpdateZoneParameterSize] = string.Format(Constants.CreateOrUpdateZoneParameterSizeValueFormat, width, height, length)
+                };
+                var response = _zoneManager.Call<bool?>(Constants.CreateOrUpdateZone, zoneId, argsMap.ToArray(), location);
+                return response ?? false;
+            }
+
+            bool IZoneManagerRepository.CreateOrUpdateZoneCircular(string zoneId, string name, UnityEngine.Vector3 location, int radius)
             {
                 var argsMap = new Dictionary<string, string>
                 {
@@ -153,12 +190,18 @@ namespace Oxide.Plugins
     {
         private int _columns;
         private int _rows;
-        private readonly float _size;
+        private readonly float _gridOffset;
         private List<Grid> _grids;
 
-        public Map(int size)
+        public Map(int worldSize)
         {
-            _size = size;
+            // The in-game map is always square
+            _columns = (int)Mathf.Floor(worldSize / Constants.GridCellSize);
+            _rows = _columns;
+            // Sometimes (0,0,0) in-game is not the center of the center grid - the offset is how much it is off by
+            var sizeUsedByGrids = _columns * Constants.GridCellSize;
+            var sizeUsedByGridsHalved = sizeUsedByGrids / 2f;
+            _gridOffset = (worldSize - sizeUsedByGridsHalved) / 2f;
         }
 
         private static class Constants
@@ -166,24 +209,24 @@ namespace Oxide.Plugins
             public const float GridCellSize = 146.3f;
         }
 
-        public Vector2 GetGridCenter(Grid grid)
+        public Vector2 GetGridTopLeft(Grid grid)
         {
-            var centerOffset = Constants.GridCellSize / 2f;
-            var halfWidth = Mathf.Floor((_rows * Constants.GridCellSize) / 2f);
-            var halfHeight = Mathf.Floor((_rows * Constants.GridCellSize) / 2f);
-            var offset = (_size - (_rows * Constants.GridCellSize)) / 2f;
             return new Vector2(
-                (grid.GetColumnNumeric() * Constants.GridCellSize) - (halfWidth) - offset,
-                 (grid.GetRow() * Constants.GridCellSize * -1) + (halfHeight - offset)
+                (grid.GetColumnNumeric() * Constants.GridCellSize) - _gridOffset,
+                (grid.GetRow() * Constants.GridCellSize * -1) + _gridOffset
             );
         }
 
-        public static float GetGridWidth()
+        public Vector2 GetGridCenter(Grid grid)
         {
-            return Constants.GridCellSize;
+            var sizeOfGridHalved = Constants.GridCellSize / 2f;
+            return new Vector2(
+                (grid.GetColumnNumeric() * Constants.GridCellSize) - _gridOffset + sizeOfGridHalved,
+                (grid.GetRow() * Constants.GridCellSize * -1) + _gridOffset - sizeOfGridHalved
+            );
         }
 
-        public static float GetGridHeight()
+        public static float GetGridSize()
         {
             return Constants.GridCellSize;
         }
@@ -198,8 +241,7 @@ namespace Oxide.Plugins
             {
                 _grids = new List<Grid>();
 
-                _columns = (int)Mathf.Floor(_size / Constants.GridCellSize);
-                _rows = (int)Mathf.Floor(_size / Constants.GridCellSize);
+
 
                 for (byte row = 0; row < _rows; row++)
                 {
@@ -259,7 +301,9 @@ namespace Oxide.Plugins
             /// <param name="location"></param>
             /// <param name="radius"></param>
             /// <returns>Returns true if the zone is valid, else returns false if it was saved but not created (only reason would be that no position for the zone was set)</returns>
-            bool CreateOrUpdateZone(string zoneId, string name, Vector3 location, int radius);
+            bool CreateOrUpdateZoneCircular(string zoneId, string name, Vector3 location, int radius);
+
+            bool CreateOrUpdateZoneRectangular(string zoneId, string name, Vector3 location, int width, int height, int length);
 
             /// <summary>
             /// Erase a zone by ZoneID or name.
@@ -274,6 +318,8 @@ namespace Oxide.Plugins
             /// <param name="player"></param>
             /// <returns>Returns a string[] of IDs for zones the specified player is currently in, or null if none found</returns>
             string[] GetPlayerZoneIds(BasePlayer player);
+
+            bool CreateZoneForGrid(Grid grid, Vector2 center, float gridSize);
         }
     }
 }
@@ -283,18 +329,15 @@ namespace Oxide.Plugins
     {
         public void InitializeMapForNewWipe()
         {
-            Puts(ConVar.Server.worldsize.ToString());
-            Puts(TerrainMeta.Size.ToString());
+            // For each grid on the map create a ZoneManager zone for them
             var map = new Map(ConVar.Server.worldsize);
-            /** For the map-size, generate **/
             foreach (var grid in map)
             {
-                if (grid.GetRow() == 0)
-                {
-                    Puts(grid.ToString());
-                    Puts(map.GetGridCenter(grid).ToString());
-                }
-
+                _zoneManagerRepository.CreateZoneForGrid(
+                    grid: grid,
+                    center: map.GetGridCenter(grid),
+                    gridSize: Map.GetGridSize()
+                );
             }
         }
     }

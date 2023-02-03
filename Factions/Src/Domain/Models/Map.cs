@@ -9,12 +9,18 @@
     {
         private int _columns;
         private int _rows;
-        private readonly float _size;
+        private readonly float _gridOffset;
         private List<Grid> _grids;
 
-        public Map(int size)
+        public Map(int worldSize)
         {
-            _size = size;
+            // The in-game map is always square
+            _columns = (int)Mathf.Floor(worldSize / Constants.GridCellSize);
+            _rows = _columns;
+            // Sometimes (0,0,0) in-game is not the center of the center grid - the offset is how much it is off by
+            var sizeUsedByGrids = _columns * Constants.GridCellSize;
+            var sizeUsedByGridsHalved = sizeUsedByGrids / 2f;
+            _gridOffset = (worldSize - sizeUsedByGridsHalved) / 2f;
         }
 
         private static class Constants
@@ -22,24 +28,24 @@
             public const float GridCellSize = 146.3f;
         }
 
-        public Vector2 GetGridCenter(Grid grid)
+        public Vector2 GetGridTopLeft(Grid grid)
         {
-            var centerOffset = Constants.GridCellSize / 2f;
-            var halfWidth = Mathf.Floor((_rows * Constants.GridCellSize) / 2f);
-            var halfHeight = Mathf.Floor((_rows * Constants.GridCellSize) / 2f);
-            var offset = (_size - (_rows * Constants.GridCellSize)) / 2f;
             return new Vector2(
-                (grid.GetColumnNumeric() * Constants.GridCellSize) - (halfWidth) - offset,
-                 (grid.GetRow() * Constants.GridCellSize * -1) + (halfHeight - offset)
+                (grid.GetColumnNumeric() * Constants.GridCellSize) - _gridOffset,
+                (grid.GetRow() * Constants.GridCellSize * -1) + _gridOffset
             );
         }
 
-        public static float GetGridWidth()
+        public Vector2 GetGridCenter(Grid grid)
         {
-            return Constants.GridCellSize;
+            var sizeOfGridHalved = Constants.GridCellSize / 2f;
+            return new Vector2(
+                (grid.GetColumnNumeric() * Constants.GridCellSize) - _gridOffset + sizeOfGridHalved,
+                (grid.GetRow() * Constants.GridCellSize * -1) + _gridOffset - sizeOfGridHalved
+            );
         }
 
-        public static float GetGridHeight()
+        public static float GetGridSize()
         {
             return Constants.GridCellSize;
         }
@@ -54,8 +60,7 @@
             {
                 _grids = new List<Grid>();
 
-                _columns = (int)Mathf.Floor(_size / Constants.GridCellSize);
-                _rows = (int)Mathf.Floor(_size / Constants.GridCellSize);
+
 
                 for (byte row = 0; row < _rows; row++)
                 {
