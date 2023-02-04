@@ -1,5 +1,6 @@
 ﻿// Requires: ZoneManager
 
+using Network;
 using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
@@ -10,6 +11,14 @@ namespace Oxide.Plugins
     {
         #region Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
+
+        public void Blah()
+        {
+            Network.Net.sv.Start();
+            MapMarkerGenericRadius v;
+            v.SendUpdate();
+            SendInfo(BaseNetworkable.G)
+        }
         #endregion
     }
 }﻿﻿namespace Oxide.Plugins
@@ -18,19 +27,18 @@ namespace Oxide.Plugins
     using System.Linq;
     using System.Numerics;
     using Oxide.Core.Plugins;
+    using System;
+    using UnityEngine;
+    using UnityEngine.UIElements;
 
     partial class Factions
     {
-        private class TruePveRepository : ITruePveRepository
+        private class NetworkRepository : INetworkRepository
         {
-            bool ITruePveRepository.AddOrUpdateMapping(string key, string ruleset)
+            public void SendMarkerToPlayer(BasePlayer player, float colorRed, float colorBlue, float colorGreen, float colorAlpha,
+                UnityEngine.Vector2 location, float radius)
             {
-                throw new System.NotImplementedException();
-            }
-
-            bool ITruePveRepository.RemoveMapping(string key)
-            {
-                throw new System.NotImplementedException();
+                throw new NotImplementedException();
             }
         }
     }
@@ -264,24 +272,21 @@ namespace Oxide.Plugins
 
 ﻿namespace Oxide.Plugins
 {
+    using UnityEngine;
+
     partial class Factions
     {
-        private interface ITruePveRepository
+        private interface INetworkRepository
         {
-            /// <summary>
-            /// Adds or updates a mapping.
-            /// </summary>
-            /// <param name="key"></param>
-            /// <param name="ruleset"></param>
-            /// <returns>True if successful. False if unsuccessful.</returns>
-            bool AddOrUpdateMapping(string key, string ruleset);
-
-            /// <summary>
-            /// Removes a mapping.
-            /// </summary>
-            /// <param name="key"></param>
-            /// <returns>True if successful. False if unsuccessful.</returns>
-            bool RemoveMapping(string key);
+            void SendMarkerToPlayer(
+                BasePlayer player,
+                float colorRed,
+                float colorBlue,
+                float colorGreen,
+                float colorAlpha,
+                Vector2 location,
+                float radius
+            );
         }
     }
 }

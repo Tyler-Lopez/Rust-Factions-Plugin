@@ -1,5 +1,6 @@
 ﻿// Requires: ZoneManager
 
+using Network;
 using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
@@ -10,6 +11,14 @@ namespace Oxide.Plugins
     {
         #region Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
+
+        public void Blah()
+        {
+            Network.Net.sv.Start();
+            MapMarkerGenericRadius v;
+            v.SendUpdate();
+            SendInfo(BaseNetworkable.G)
+        }
         #endregion
     }
 }﻿
