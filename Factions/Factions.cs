@@ -1,7 +1,10 @@
 ﻿// Requires: ZoneManager
 
+using System;
+using System.Linq;
 using Network;
 using Oxide.Core.Plugins;
+using UnityEngine;
 
 namespace Oxide.Plugins
 {
@@ -12,13 +15,20 @@ namespace Oxide.Plugins
         #region Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
 
-        public void Blah()
+        public void Blah(BasePlayer player, Vector2 position)
         {
-            Network.Net.sv.Start();
-            MapMarkerGenericRadius v;
-            v.SendUpdate();
-            SendInfo(BaseNetworkable.G)
+            Puts("Here in blah...");
+            MapMarkerGenericRadius marker = GameManager.server.CreateEntity("assets/prefabs/tools/map/genericradiusmarker.prefab", position).GetComponent<MapMarkerGenericRadius>();
+            marker.Spawn();
+            Puts("spawned");
+            var color = new Vector3(1f, 1f, 1f);
+            marker.ClientRPCPlayer<Vector3, float, Vector3, float, float>((Connection)null, player, "MarkerUpdate", color, 50f, color, 1f, 50f);
         }
         #endregion
+
+        class MyMapMarker : MapMarker
+        {
+
+        }
     }
-}﻿
+}

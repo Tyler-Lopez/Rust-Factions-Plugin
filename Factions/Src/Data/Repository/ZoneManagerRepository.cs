@@ -58,6 +58,7 @@
 
             bool IZoneManagerRepository.CreateOrUpdateZoneRectangular(string zoneId, string name, UnityEngine.Vector3 location, int width, int height, int length)
             {
+                /*
                 var argsMap = new Dictionary<string, string>
                 {
                     [Constants.CreateOrUpdateZoneParameterName] = name,
@@ -65,6 +66,8 @@
                 };
                 var response = _zoneManager.Call<bool?>(Constants.CreateOrUpdateZone, zoneId, argsMap.ToArray(), location);
                 return response ?? false;
+                */
+                return true;
             }
 
             bool IZoneManagerRepository.CreateOrUpdateZoneCircular(string zoneId, string name, UnityEngine.Vector3 location, int radius)

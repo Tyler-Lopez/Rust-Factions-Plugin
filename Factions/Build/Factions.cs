@@ -1,7 +1,10 @@
 ﻿// Requires: ZoneManager
 
+using System;
+using System.Linq;
 using Network;
 using Oxide.Core.Plugins;
+using UnityEngine;
 
 namespace Oxide.Plugins
 {
@@ -12,16 +15,23 @@ namespace Oxide.Plugins
         #region Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
 
-        public void Blah()
+        public void Blah(BasePlayer player, Vector2 position)
         {
-            Network.Net.sv.Start();
-            MapMarkerGenericRadius v;
-            v.SendUpdate();
-            SendInfo(BaseNetworkable.G)
+            Puts("Here in blah...");
+            MapMarkerGenericRadius marker = GameManager.server.CreateEntity("assets/prefabs/tools/map/genericradiusmarker.prefab", position).GetComponent<MapMarkerGenericRadius>();
+            marker.Spawn();
+            Puts("spawned");
+            var color = new Vector3(1f, 1f, 1f);
+            marker.ClientRPCPlayer<Vector3, float, Vector3, float, float>((Connection)null, player, "MarkerUpdate", color, 50f, color, 1f, 50f);
         }
         #endregion
+
+        class MyMapMarker : MapMarker
+        {
+
+        }
     }
-}﻿﻿namespace Oxide.Plugins
+}﻿namespace Oxide.Plugins
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -103,6 +113,7 @@ namespace Oxide.Plugins
 
             bool IZoneManagerRepository.CreateOrUpdateZoneRectangular(string zoneId, string name, UnityEngine.Vector3 location, int width, int height, int length)
             {
+                /*
                 var argsMap = new Dictionary<string, string>
                 {
                     [Constants.CreateOrUpdateZoneParameterName] = name,
@@ -110,6 +121,8 @@ namespace Oxide.Plugins
                 };
                 var response = _zoneManager.Call<bool?>(Constants.CreateOrUpdateZone, zoneId, argsMap.ToArray(), location);
                 return response ?? false;
+                */
+                return true;
             }
 
             bool IZoneManagerRepository.CreateOrUpdateZoneCircular(string zoneId, string name, UnityEngine.Vector3 location, int radius)
@@ -375,6 +388,22 @@ namespace Oxide.Plugins
             }
 
             InitializeMapForNewWipe();
+        }
+    }
+}
+﻿namespace Oxide.Plugins
+{
+    using Oxide.Core.Plugins;
+    using System.Collections.Generic;
+    using System.Text;
+    using UnityEngine;
+    partial class Factions
+    {
+        [ChatCommand("test")]
+        private void OnCommand(BasePlayer player, string command, string[] args)
+        {
+            Puts("Received input...");
+            Blah(player, new Vector2(0, 0));
         }
     }
 }

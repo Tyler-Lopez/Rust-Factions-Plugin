@@ -12,8 +12,7 @@
     {
         private class NetworkRepository : INetworkRepository
         {
-            public void SendMarkerToPlayer(BasePlayer player, float colorRed, float colorBlue, float colorGreen, float colorAlpha,
-                UnityEngine.Vector2 location, float radius)
+            public void SendMarkerToPlayer(BasePlayer player, MapMarkerGenericRadius marker)
             {
                 throw new NotImplementedException();
             }

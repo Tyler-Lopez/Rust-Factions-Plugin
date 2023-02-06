@@ -8,12 +8,7 @@
         {
             void SendMarkerToPlayer(
                 BasePlayer player,
-                float colorRed,
-                float colorBlue,
-                float colorGreen,
-                float colorAlpha,
-                Vector2 location,
-                float radius
+                MapMarkerGenericRadius marker
             );
         }
     }
