@@ -1,20 +1,28 @@
-﻿namespace Oxide.Plugins
+﻿
+namespace Oxide.Plugins
 {
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Numerics;
-    using Oxide.Core.Plugins;
     using System;
     using UnityEngine;
     using UnityEngine.UIElements;
+    using Facepunch;
+    using Network;
+
 
     partial class Factions
     {
         private class NetworkRepository : INetworkRepository
         {
-            public void SendMarkerToPlayer(BasePlayer player, MapMarkerGenericRadius marker)
+            void INetworkRepository.AddMarkerToPlayerSubscription(BasePlayer player, FactionsMapMarker marker)
             {
-                throw new NotImplementedException();
+                marker.GetMarkerEntity().OnNetworkSubscribersEnter(new List<Connection>() { player.Connection });
+                marker.SendMarkerUpdate();
+            }
+
+            void INetworkRepository.RemoveMarkerFromPlayerSubscription(BasePlayer player, FactionsMapMarker marker)
+            {
+                marker.GetMarkerEntity().OnNetworkSubscribersLeave(new List<Connection>() { player.Connection });
+               marker.SendMarkerUpdate();
             }
         }
     }

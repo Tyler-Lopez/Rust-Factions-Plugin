@@ -6,10 +6,13 @@
     {
         private interface INetworkRepository
         {
-            void SendMarkerToPlayer(
+            void AddMarkerToPlayerSubscription(
                 BasePlayer player,
-                MapMarkerGenericRadius marker
-            );
+                FactionsMapMarker marker);
+
+            void RemoveMarkerFromPlayerSubscription(
+                BasePlayer player,
+                FactionsMapMarker mapMarker);
         }
     }
 }

@@ -1,49 +1,70 @@
 ﻿namespace Oxide.Plugins
 {
-    using System.Text;
-    public class FactionsMapMarker
+    using UnityEngine;
+    public interface IFactionsMapMarkerSpecification
     {
-        private readonly byte _columnByte;
-        private readonly string _columnString;
-        private readonly byte _row;
+        Vector2 GetLocation();
+    }
+
+    public sealed class ClanClaim : IFactionsMapMarkerSpecification
+    {
+        private readonly Vector2 _location;
+        public readonly Color Color;
+        public readonly bool IsCapital;
+
+        public ClanClaim(float colorRed, float colorGreen, float colorBlue, bool isCapital, Vector2 location)
+        {
+            Color = new Color(colorRed, colorGreen, colorBlue);
+            _location = location;
+            IsCapital = isCapital;
+        }
+
+        Vector2 IFactionsMapMarkerSpecification.GetLocation()
+        {
+            return _location;
+        }
+    }
+
+    public sealed class FactionsMapMarker
+    {
+        private readonly MapMarkerGenericRadius _marker;
 
         private static class Constants
         {
-            public const string EntityPrefab = "assets/prefabs/tools/map/genericradiusmarker.prefab"
+            public const string EntityPrefab = "assets/prefabs/tools/map/genericradiusmarker.prefab";
+            public const float ClanClaimAlpha = 0.5f;
         }
 
-        public Grid(byte row, byte columnByte)
+        public FactionsMapMarker(IFactionsMapMarkerSpecification specification)
         {
-            _row = row;
-            _columnByte = columnByte;
-            const int columnRange = (Constants.ColumnLastBeforeRepeat - Constants.ColumnFirstChar) + 1;
-            var columnStringBuilder = new StringBuilder();
-            for (var excessRanges = 0; excessRanges < (_columnByte / columnRange); excessRanges++)
+            Vector2 position = specification.GetLocation();
+            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, position).GetComponent<MapMarkerGenericRadius>();
+
+            var claim = (ClanClaim)specification;
+            if (claim != null)
             {
-                columnStringBuilder.Append(Constants.ColumnFirstChar);
+                _marker.color1 = claim.Color;
+                _marker.radius = 2f;
+                _marker.alpha = Constants.ClanClaimAlpha;
             }
-            columnStringBuilder.Append((char)(Constants.ColumnFirstChar + (_columnByte % columnRange)));
-            _columnString = columnStringBuilder.ToString();
+
+            _marker.Spawn();
+            _marker.SendUpdate();
         }
 
-        public byte GetRow()
+        public BaseEntity GetMarkerEntity()
         {
-            return _row;
+            return _marker;
         }
 
-        public byte GetColumnNumeric()
+        public Color GetColor()
         {
-            return _columnByte;
+            return _marker.color1;
         }
 
-        public string GetColumnString()
+        public void SendMarkerUpdate()
         {
-            return _columnString;
-        }
-
-        public override string ToString()
-        {
-            return $"{_columnString}{Constants.RowColumnDelimiter}{_row}";
+            _marker.SendUpdate();
         }
     }
 

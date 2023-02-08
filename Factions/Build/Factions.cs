@@ -14,15 +14,18 @@ namespace Oxide.Plugins
     {
         #region Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
+        private INetworkRepository _networkRepository;
 
         public void Blah(BasePlayer player, Vector2 position)
         {
+            /*
             Puts("Here in blah...");
             MapMarkerGenericRadius marker = GameManager.server.CreateEntity("assets/prefabs/tools/map/genericradiusmarker.prefab", position).GetComponent<MapMarkerGenericRadius>();
             marker.Spawn();
             Puts("spawned");
             var color = new Vector3(1f, 1f, 1f);
             marker.ClientRPCPlayer<Vector3, float, Vector3, float, float>((Connection)null, player, "MarkerUpdate", color, 50f, color, 1f, 50f);
+            */
         }
         #endregion
 
@@ -31,24 +34,31 @@ namespace Oxide.Plugins
 
         }
     }
-}﻿namespace Oxide.Plugins
+}﻿
+namespace Oxide.Plugins
 {
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Numerics;
-    using Oxide.Core.Plugins;
     using System;
     using UnityEngine;
     using UnityEngine.UIElements;
+    using Facepunch;
+    using Network;
+
 
     partial class Factions
     {
         private class NetworkRepository : INetworkRepository
         {
-            public void SendMarkerToPlayer(BasePlayer player, float colorRed, float colorBlue, float colorGreen, float colorAlpha,
-                UnityEngine.Vector2 location, float radius)
+            void INetworkRepository.AddMarkerToPlayerSubscription(BasePlayer player, FactionsMapMarker marker)
             {
-                throw new NotImplementedException();
+                marker.GetMarkerEntity().OnNetworkSubscribersEnter(new List<Connection>() { player.Connection });
+                marker.SendMarkerUpdate();
+            }
+
+            void INetworkRepository.RemoveMarkerFromPlayerSubscription(BasePlayer player, FactionsMapMarker marker)
+            {
+                marker.GetMarkerEntity().OnNetworkSubscribersLeave(new List<Connection>() { player.Connection });
+               marker.SendMarkerUpdate();
             }
         }
     }
@@ -207,10 +217,10 @@ namespace Oxide.Plugins
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
-    public class Map : IEnumerable<Grid>
+    public sealed class Map : IEnumerable<Grid>
     {
-        private int _columns;
-        private int _rows;
+        private readonly int _columns;
+        private readonly int _rows;
         private readonly float _gridOffset;
         private List<Grid> _grids;
 
@@ -286,20 +296,89 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
     using UnityEngine;
+    public interface IFactionsMapMarkerSpecification
+    {
+        Vector2 GetLocation();
+    }
+
+    public sealed class ClanClaim : IFactionsMapMarkerSpecification
+    {
+        private readonly Vector2 _location;
+        public readonly Color Color;
+        public readonly bool IsCapital;
+
+        public ClanClaim(float colorRed, float colorGreen, float colorBlue, bool isCapital, Vector2 location)
+        {
+            Color = new Color(colorRed, colorGreen, colorBlue);
+            _location = location;
+            IsCapital = isCapital;
+        }
+
+        Vector2 IFactionsMapMarkerSpecification.GetLocation()
+        {
+            return _location;
+        }
+    }
+
+    public sealed class FactionsMapMarker
+    {
+        private readonly MapMarkerGenericRadius _marker;
+
+        private static class Constants
+        {
+            public const string EntityPrefab = "assets/prefabs/tools/map/genericradiusmarker.prefab";
+            public const float ClanClaimAlpha = 0.5f;
+        }
+
+        public FactionsMapMarker(IFactionsMapMarkerSpecification specification)
+        {
+            Vector2 position = specification.GetLocation();
+            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, position).GetComponent<MapMarkerGenericRadius>();
+
+            var claim = (ClanClaim)specification;
+            if (claim != null)
+            {
+                _marker.color1 = claim.Color;
+                _marker.radius = 2f;
+                _marker.alpha = Constants.ClanClaimAlpha;
+            }
+
+            _marker.Spawn();
+            _marker.SendUpdate();
+        }
+
+        public BaseEntity GetMarkerEntity()
+        {
+            return _marker;
+        }
+
+        public Color GetColor()
+        {
+            return _marker.color1;
+        }
+
+        public void SendMarkerUpdate()
+        {
+            _marker.SendUpdate();
+        }
+    }
+
+}
+﻿namespace Oxide.Plugins
+{
+    using UnityEngine;
 
     partial class Factions
     {
         private interface INetworkRepository
         {
-            void SendMarkerToPlayer(
+            void AddMarkerToPlayerSubscription(
                 BasePlayer player,
-                float colorRed,
-                float colorBlue,
-                float colorGreen,
-                float colorAlpha,
-                Vector2 location,
-                float radius
-            );
+                FactionsMapMarker marker);
+
+            void RemoveMarkerFromPlayerSubscription(
+                BasePlayer player,
+                FactionsMapMarker mapMarker);
         }
     }
 }
@@ -373,6 +452,7 @@ namespace Oxide.Plugins
             var manager = Manager;
 
             _zoneManagerRepository = ZoneManagerRepository.CreateInstance(manager);
+            _networkRepository = new NetworkRepository();
 
             var missingPluginsConsoleMessage = new StringBuilder();
 
@@ -389,6 +469,8 @@ namespace Oxide.Plugins
 
             InitializeMapForNewWipe();
         }
+
+
     }
 }
 ﻿namespace Oxide.Plugins
@@ -399,11 +481,30 @@ namespace Oxide.Plugins
     using UnityEngine;
     partial class Factions
     {
+        private FactionsMapMarker myMapMarker;
+
         [ChatCommand("test")]
         private void OnCommand(BasePlayer player, string command, string[] args)
         {
-            Puts("Received input...");
-            Blah(player, new Vector2(0, 0));
+            myMapMarker = new FactionsMapMarker(new ClanClaim(
+                colorRed: 1.0f,
+                colorGreen: 1.0f,
+                colorBlue: 1.0f,
+                isCapital: false,
+                location: Vector2.zero
+            ));
+        }
+
+        [ChatCommand("test2")]
+        private void OnCommandTwo(BasePlayer player, string command, string[] args)
+        {
+            _networkRepository.AddMarkerToPlayerSubscription(player, myMapMarker);
+        }
+
+        [ChatCommand("test3")]
+        private void OnCommandThree(BasePlayer player, string command, string[] args)
+        {
+            _networkRepository.RemoveMarkerFromPlayerSubscription(player, myMapMarker);
         }
     }
 }

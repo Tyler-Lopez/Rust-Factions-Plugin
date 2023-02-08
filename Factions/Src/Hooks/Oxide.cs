@@ -11,6 +11,7 @@
             var manager = Manager;
 
             _zoneManagerRepository = ZoneManagerRepository.CreateInstance(manager);
+            _networkRepository = new NetworkRepository();
 
             var missingPluginsConsoleMessage = new StringBuilder();
 
@@ -27,5 +28,7 @@
 
             InitializeMapForNewWipe();
         }
+
+
     }
 }

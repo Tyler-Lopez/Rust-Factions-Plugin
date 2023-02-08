@@ -5,10 +5,10 @@
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
-    public class Map : IEnumerable<Grid>
+    public sealed class Map : IEnumerable<Grid>
     {
-        private int _columns;
-        private int _rows;
+        private readonly int _columns;
+        private readonly int _rows;
         private readonly float _gridOffset;
         private List<Grid> _grids;
 
