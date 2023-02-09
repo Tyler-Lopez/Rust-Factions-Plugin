@@ -25,13 +25,29 @@
         }
     }
 
+    public sealed class Badlands : IFactionsMapMarkerSpecification
+    {
+        private readonly Vector2 _location;
+
+        public Badlands()
+        {
+            // TODO
+        }
+
+        Vector2 IFactionsMapMarkerSpecification.GetLocation()
+        {
+            return _location;
+        }
+    }
+
     public sealed class FactionsMapMarker
     {
-        private readonly MapMarkerGenericRadius _marker;
+        private MapMarkerGenericRadius _marker;
 
         private static class Constants
         {
             public const string EntityPrefab = "assets/prefabs/tools/map/genericradiusmarker.prefab";
+            public const string MarkerUpdateRpcFunction = "MarkerUpdate";
             public const float ClanClaimAlpha = 0.5f;
         }
 
@@ -49,23 +65,38 @@
             }
 
             _marker.Spawn();
-            _marker.SendUpdate();
         }
 
-        public BaseEntity GetMarkerEntity()
+        public void Respawn()
         {
-            return _marker;
+            var prevColor = _marker.color1;
+            var prevRadius = _marker.radius;
+            var prevAlpha = _marker.alpha;
+            _marker.Kill();
+            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, _marker.ServerPosition).GetComponent<MapMarkerGenericRadius>();
+            _marker.color1 = prevColor;
+            _marker.radius = prevRadius;
+            _marker.alpha = prevAlpha;
+            _marker.Spawn();
         }
 
-        public Color GetColor()
+        public void NetworkMarkerToPlayer(BasePlayer player)
         {
-            return _marker.color1;
+            var color = new Vector3(_marker.color1.r, _marker.color1.g, _marker.color1.b);
+            _marker.ClientRPCPlayer<Vector3, float, Vector3, float, float>(
+                sourceConnection: null,
+                player: player,
+                funcName: Constants.MarkerUpdateRpcFunction,
+                arg1: color,
+                arg2: _marker.alpha,
+                arg3: color,
+                arg4: _marker.alpha,
+                arg5: _marker.radius);
         }
 
-        public void SendMarkerUpdate()
+        public void Kill()
         {
-            _marker.SendUpdate();
+            _marker.Kill();
         }
     }
-
 }

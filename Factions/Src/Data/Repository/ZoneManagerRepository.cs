@@ -42,12 +42,12 @@
                 _zoneManager = zoneManager;
             }
 
-            bool IZoneManagerRepository.CreateZoneForGrid(Grid grid, UnityEngine.Vector2 center, float gridSize)
+            bool IZoneManagerRepository.CreateZoneForGrid(FactionsGrid factionsGrid, UnityEngine.Vector2 center, float gridSize)
             {
                 var adjGridSize = (int)Mathf.Floor(gridSize);
                 return (this as IZoneManagerRepository).CreateOrUpdateZoneRectangular(
-                    $"{Constants.GridPrefix}{grid}",
-                    grid.ToString(),
+                    $"{Constants.GridPrefix}{factionsGrid}",
+                    factionsGrid.ToString(),
                     center,
                     adjGridSize,
                     Constants.GridHeight,

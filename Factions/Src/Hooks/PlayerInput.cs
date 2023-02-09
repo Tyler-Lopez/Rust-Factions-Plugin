@@ -6,30 +6,25 @@
     using UnityEngine;
     partial class Factions
     {
-        private FactionsMapMarker myMapMarker;
 
         [ChatCommand("test")]
         private void OnCommand(BasePlayer player, string command, string[] args)
         {
-            myMapMarker = new FactionsMapMarker(new ClanClaim(
+            var myMapMarker = new FactionsMapMarker(new ClanClaim(
                 colorRed: 1.0f,
                 colorGreen: 1.0f,
                 colorBlue: 1.0f,
                 isCapital: false,
                 location: Vector2.zero
             ));
+
+            _factionsMapMarkerManager.AddLandClaimMarker("A:6", myMapMarker);
         }
 
         [ChatCommand("test2")]
         private void OnCommandTwo(BasePlayer player, string command, string[] args)
         {
-            _networkRepository.AddMarkerToPlayerSubscription(player, myMapMarker);
-        }
-
-        [ChatCommand("test3")]
-        private void OnCommandThree(BasePlayer player, string command, string[] args)
-        {
-            _networkRepository.RemoveMarkerFromPlayerSubscription(player, myMapMarker);
+            _factionsMapMarkerManager.PlayerToggleLandClaimMarkerVisibility(player);
         }
     }
 }

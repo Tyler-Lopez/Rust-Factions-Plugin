@@ -14,7 +14,7 @@ namespace Oxide.Plugins
     {
         #region Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
-        private INetworkRepository _networkRepository;
+        private FactionsMapMarkerManager _factionsMapMarkerManager;
 
         public void Blah(BasePlayer player, Vector2 position)
         {

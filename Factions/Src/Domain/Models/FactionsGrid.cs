@@ -1,7 +1,7 @@
 ﻿namespace Oxide.Plugins
 {
     using System.Text;
-    public class Grid
+    public class FactionsGrid
     {
         private readonly byte _columnByte;
         private readonly string _columnString;
@@ -14,7 +14,7 @@
             public const char RowColumnDelimiter = ':';
         }
 
-        public Grid(byte row, byte columnByte)
+        public FactionsGrid(byte row, byte columnByte)
         {
             _row = row;
             _columnByte = columnByte;

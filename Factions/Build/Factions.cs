@@ -14,7 +14,7 @@ namespace Oxide.Plugins
     {
         #region Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
-        private INetworkRepository _networkRepository;
+        private FactionsMapMarkerManager _factionsMapMarkerManager;
 
         public void Blah(BasePlayer player, Vector2 position)
         {
@@ -34,36 +34,7 @@ namespace Oxide.Plugins
 
         }
     }
-}﻿
-namespace Oxide.Plugins
-{
-    using System.Collections.Generic;
-    using System;
-    using UnityEngine;
-    using UnityEngine.UIElements;
-    using Facepunch;
-    using Network;
-
-
-    partial class Factions
-    {
-        private class NetworkRepository : INetworkRepository
-        {
-            void INetworkRepository.AddMarkerToPlayerSubscription(BasePlayer player, FactionsMapMarker marker)
-            {
-                marker.GetMarkerEntity().OnNetworkSubscribersEnter(new List<Connection>() { player.Connection });
-                marker.SendMarkerUpdate();
-            }
-
-            void INetworkRepository.RemoveMarkerFromPlayerSubscription(BasePlayer player, FactionsMapMarker marker)
-            {
-                marker.GetMarkerEntity().OnNetworkSubscribersLeave(new List<Connection>() { player.Connection });
-               marker.SendMarkerUpdate();
-            }
-        }
-    }
-}
-﻿namespace Oxide.Plugins
+}﻿namespace Oxide.Plugins
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -107,12 +78,12 @@ namespace Oxide.Plugins
                 _zoneManager = zoneManager;
             }
 
-            bool IZoneManagerRepository.CreateZoneForGrid(Grid grid, UnityEngine.Vector2 center, float gridSize)
+            bool IZoneManagerRepository.CreateZoneForGrid(FactionsGrid factionsGrid, UnityEngine.Vector2 center, float gridSize)
             {
                 var adjGridSize = (int)Mathf.Floor(gridSize);
                 return (this as IZoneManagerRepository).CreateOrUpdateZoneRectangular(
-                    $"{Constants.GridPrefix}{grid}",
-                    grid.ToString(),
+                    $"{Constants.GridPrefix}{factionsGrid}",
+                    factionsGrid.ToString(),
                     center,
                     adjGridSize,
                     Constants.GridHeight,
@@ -161,7 +132,7 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
     using System.Text;
-    public class Grid
+    public class FactionsGrid
     {
         private readonly byte _columnByte;
         private readonly string _columnString;
@@ -174,7 +145,7 @@ namespace Oxide.Plugins
             public const char RowColumnDelimiter = ':';
         }
 
-        public Grid(byte row, byte columnByte)
+        public FactionsGrid(byte row, byte columnByte)
         {
             _row = row;
             _columnByte = columnByte;
@@ -217,19 +188,19 @@ namespace Oxide.Plugins
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
-    public sealed class Map : IEnumerable<Grid>
+    public sealed class FactionsMap : IEnumerable<FactionsGrid>
     {
         private readonly int _columns;
         private readonly int _rows;
         private readonly float _gridOffset;
-        private List<Grid> _grids;
+        private List<FactionsGrid> _grids;
 
-        public Map(int worldSize)
+        public FactionsMap(int worldSize)
         {
             // The in-game map is always square
             _columns = (int)Mathf.Floor(worldSize / Constants.GridCellSize);
             _rows = _columns;
-            // Sometimes (0,0,0) in-game is not the center of the center grid - the offset is how much it is off by
+            // Sometimes (0,0,0) in-game is not the center of the center factionsGrid - the offset is how much it is off by
             var sizeUsedByGrids = _columns * Constants.GridCellSize;
             var sizeUsedByGridsHalved = sizeUsedByGrids / 2f;
             _gridOffset = (worldSize - sizeUsedByGridsHalved) / 2f;
@@ -240,20 +211,20 @@ namespace Oxide.Plugins
             public const float GridCellSize = 146.3f;
         }
 
-        public Vector2 GetGridTopLeft(Grid grid)
+        public Vector2 GetGridTopLeft(FactionsGrid factionsGrid)
         {
             return new Vector2(
-                (grid.GetColumnNumeric() * Constants.GridCellSize) - _gridOffset,
-                (grid.GetRow() * Constants.GridCellSize * -1) + _gridOffset
+                (factionsGrid.GetColumnNumeric() * Constants.GridCellSize) - _gridOffset,
+                (factionsGrid.GetRow() * Constants.GridCellSize * -1) + _gridOffset
             );
         }
 
-        public Vector2 GetGridCenter(Grid grid)
+        public Vector2 GetGridCenter(FactionsGrid factionsGrid)
         {
             var sizeOfGridHalved = Constants.GridCellSize / 2f;
             return new Vector2(
-                (grid.GetColumnNumeric() * Constants.GridCellSize) - _gridOffset + sizeOfGridHalved,
-                (grid.GetRow() * Constants.GridCellSize * -1) + _gridOffset - sizeOfGridHalved
+                (factionsGrid.GetColumnNumeric() * Constants.GridCellSize) - _gridOffset + sizeOfGridHalved,
+                (factionsGrid.GetRow() * Constants.GridCellSize * -1) + _gridOffset - sizeOfGridHalved
             );
         }
 
@@ -262,7 +233,7 @@ namespace Oxide.Plugins
             return Constants.GridCellSize;
         }
 
-        public IEnumerator<Grid> GetEnumerator()
+        public IEnumerator<FactionsGrid> GetEnumerator()
         {
             if (_grids != null)
             {
@@ -270,7 +241,7 @@ namespace Oxide.Plugins
             }
             else
             {
-                _grids = new List<Grid>();
+                _grids = new List<FactionsGrid>();
 
 
 
@@ -278,7 +249,7 @@ namespace Oxide.Plugins
                 {
                     for (byte column = 0; column < _columns; column++)
                     {
-                        _grids.Add(new Grid(row, column));
+                        _grids.Add(new FactionsGrid(row, column));
                         yield return _grids.Last();
                     }
                 }
@@ -320,13 +291,29 @@ namespace Oxide.Plugins
         }
     }
 
+    public sealed class Badlands : IFactionsMapMarkerSpecification
+    {
+        private readonly Vector2 _location;
+
+        public Badlands()
+        {
+            // TODO
+        }
+
+        Vector2 IFactionsMapMarkerSpecification.GetLocation()
+        {
+            return _location;
+        }
+    }
+
     public sealed class FactionsMapMarker
     {
-        private readonly MapMarkerGenericRadius _marker;
+        private MapMarkerGenericRadius _marker;
 
         private static class Constants
         {
             public const string EntityPrefab = "assets/prefabs/tools/map/genericradiusmarker.prefab";
+            public const string MarkerUpdateRpcFunction = "MarkerUpdate";
             public const float ClanClaimAlpha = 0.5f;
         }
 
@@ -344,41 +331,110 @@ namespace Oxide.Plugins
             }
 
             _marker.Spawn();
-            _marker.SendUpdate();
         }
 
-        public BaseEntity GetMarkerEntity()
+        public void Respawn()
         {
-            return _marker;
+            var prevColor = _marker.color1;
+            var prevRadius = _marker.radius;
+            var prevAlpha = _marker.alpha;
+            _marker.Kill();
+            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, _marker.ServerPosition).GetComponent<MapMarkerGenericRadius>();
+            _marker.color1 = prevColor;
+            _marker.radius = prevRadius;
+            _marker.alpha = prevAlpha;
+            _marker.Spawn();
         }
 
-        public Color GetColor()
+        public void NetworkMarkerToPlayer(BasePlayer player)
         {
-            return _marker.color1;
+            var color = new Vector3(_marker.color1.r, _marker.color1.g, _marker.color1.b);
+            _marker.ClientRPCPlayer<Vector3, float, Vector3, float, float>(
+                sourceConnection: null,
+                player: player,
+                funcName: Constants.MarkerUpdateRpcFunction,
+                arg1: color,
+                arg2: _marker.alpha,
+                arg3: color,
+                arg4: _marker.alpha,
+                arg5: _marker.radius);
         }
 
-        public void SendMarkerUpdate()
+        public void Kill()
         {
-            _marker.SendUpdate();
+            _marker.Kill();
         }
     }
-
 }
 ﻿namespace Oxide.Plugins
 {
     using UnityEngine;
+    using System;
+    using System.Collections.Generic;
 
-    partial class Factions
+    public class FactionsMapMarkerManager
     {
-        private interface INetworkRepository
-        {
-            void AddMarkerToPlayerSubscription(
-                BasePlayer player,
-                FactionsMapMarker marker);
+        private readonly Dictionary<string, FactionsMapMarker> _landClaimMarkers = new Dictionary<string, FactionsMapMarker>();
+        private readonly HashSet<ulong> _playersHidingLandClaimMarkers = new HashSet<ulong>();
 
-            void RemoveMarkerFromPlayerSubscription(
-                BasePlayer player,
-                FactionsMapMarker mapMarker);
+        // Add a new Land Claim type FactionsMapMarker to the Manager
+        public void AddLandClaimMarker(string gridString, FactionsMapMarker marker)
+        {
+            // Kill and remove any previous marker, if it exists
+            FactionsMapMarker prevMarker;
+            _landClaimMarkers.TryGetValue(gridString, out prevMarker);
+            prevMarker?.Kill();
+
+            // Update tracked marker and network it to all online players
+            _landClaimMarkers[gridString] = marker;
+            foreach (var basePlayer in BasePlayer.activePlayerList)
+            {
+                if (!_playersHidingLandClaimMarkers.Contains(basePlayer.userID))
+                {
+                    marker.NetworkMarkerToPlayer(basePlayer);
+                }
+            }
+        }
+
+        // Networks all land claim markers to all players excluding 
+        private void NetworkAllLandClaimMarkers(bool respawn = false)
+        {
+            foreach (var landClaimMarker in _landClaimMarkers.Values)
+            {
+                if (respawn) landClaimMarker.Respawn();
+                foreach (var basePlayer in BasePlayer.activePlayerList)
+                {
+                    if (!_playersHidingLandClaimMarkers.Contains(basePlayer.userID))
+                    {
+                        landClaimMarker.NetworkMarkerToPlayer(basePlayer);
+                    }
+                }
+            }
+        }
+
+        public void PlayerToggleLandClaimMarkerVisibility(BasePlayer player)
+        {
+            if (_playersHidingLandClaimMarkers.Contains(player.userID))
+            {
+                _playersHidingLandClaimMarkers.Remove(player.userID);
+                foreach (var factionsMapMarker in _landClaimMarkers.Values)
+                {
+                    factionsMapMarker.NetworkMarkerToPlayer(player);
+                }
+            }
+            else
+            {
+                _playersHidingLandClaimMarkers.Add(player.userID);
+                NetworkAllLandClaimMarkers(respawn: true);
+            }
+        }
+
+        public void DestroyMarkers()
+        {
+            foreach (var landClaimMarker in _landClaimMarkers.Values)
+            {
+                landClaimMarker.Kill();
+            }
         }
     }
 }
@@ -416,7 +472,7 @@ namespace Oxide.Plugins
             /// <returns>Returns a string[] of IDs for zones the specified player is currently in, or null if none found</returns>
             string[] GetPlayerZoneIds(BasePlayer player);
 
-            bool CreateZoneForGrid(Grid grid, Vector2 center, float gridSize);
+            bool CreateZoneForGrid(FactionsGrid factionsGrid, Vector2 center, float gridSize);
         }
     }
 }
@@ -426,14 +482,14 @@ namespace Oxide.Plugins
     {
         public void InitializeMapForNewWipe()
         {
-            // For each grid on the map create a ZoneManager zone for them
-            var map = new Map(ConVar.Server.worldsize);
+            // For each factionsGrid on the map create a ZoneManager zone for them
+            var map = new FactionsMap(ConVar.Server.worldsize);
             foreach (var grid in map)
             {
                 _zoneManagerRepository.CreateZoneForGrid(
-                    grid: grid,
+                    factionsGrid: grid,
                     center: map.GetGridCenter(grid),
-                    gridSize: Map.GetGridSize()
+                    gridSize: FactionsMap.GetGridSize()
                 );
             }
         }
@@ -445,6 +501,7 @@ namespace Oxide.Plugins
     using System.Collections.Generic;
     using System.Text;
     using WebSocketSharp;
+
     partial class Factions
     {
         private void Loaded()
@@ -452,13 +509,14 @@ namespace Oxide.Plugins
             var manager = Manager;
 
             _zoneManagerRepository = ZoneManagerRepository.CreateInstance(manager);
-            _networkRepository = new NetworkRepository();
+            _factionsMapMarkerManager = new FactionsMapMarkerManager();
 
             var missingPluginsConsoleMessage = new StringBuilder();
 
             if (_zoneManagerRepository == null)
             {
-                missingPluginsConsoleMessage.AppendLine("ZoneManager is not loaded! Get it here https://umod.org/plugins/zone-manager.");
+                missingPluginsConsoleMessage.AppendLine(
+                    "ZoneManager is not loaded! Get it here https://umod.org/plugins/zone-manager.");
             }
 
             var message = missingPluginsConsoleMessage.ToString();
@@ -470,7 +528,10 @@ namespace Oxide.Plugins
             InitializeMapForNewWipe();
         }
 
-
+        private void Unload()
+        {
+            _factionsMapMarkerManager.DestroyMarkers();
+        }
     }
 }
 ﻿namespace Oxide.Plugins
@@ -481,30 +542,25 @@ namespace Oxide.Plugins
     using UnityEngine;
     partial class Factions
     {
-        private FactionsMapMarker myMapMarker;
 
         [ChatCommand("test")]
         private void OnCommand(BasePlayer player, string command, string[] args)
         {
-            myMapMarker = new FactionsMapMarker(new ClanClaim(
+            var myMapMarker = new FactionsMapMarker(new ClanClaim(
                 colorRed: 1.0f,
                 colorGreen: 1.0f,
                 colorBlue: 1.0f,
                 isCapital: false,
                 location: Vector2.zero
             ));
+
+            _factionsMapMarkerManager.AddLandClaimMarker("A:6", myMapMarker);
         }
 
         [ChatCommand("test2")]
         private void OnCommandTwo(BasePlayer player, string command, string[] args)
         {
-            _networkRepository.AddMarkerToPlayerSubscription(player, myMapMarker);
-        }
-
-        [ChatCommand("test3")]
-        private void OnCommandThree(BasePlayer player, string command, string[] args)
-        {
-            _networkRepository.RemoveMarkerFromPlayerSubscription(player, myMapMarker);
+            _factionsMapMarkerManager.PlayerToggleLandClaimMarkerVisibility(player);
         }
     }
 }

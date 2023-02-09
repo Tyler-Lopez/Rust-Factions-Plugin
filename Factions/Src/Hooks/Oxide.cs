@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Text;
     using WebSocketSharp;
+
     partial class Factions
     {
         private void Loaded()
@@ -11,13 +12,14 @@
             var manager = Manager;
 
             _zoneManagerRepository = ZoneManagerRepository.CreateInstance(manager);
-            _networkRepository = new NetworkRepository();
+            _factionsMapMarkerManager = new FactionsMapMarkerManager();
 
             var missingPluginsConsoleMessage = new StringBuilder();
 
             if (_zoneManagerRepository == null)
             {
-                missingPluginsConsoleMessage.AppendLine("ZoneManager is not loaded! Get it here https://umod.org/plugins/zone-manager.");
+                missingPluginsConsoleMessage.AppendLine(
+                    "ZoneManager is not loaded! Get it here https://umod.org/plugins/zone-manager.");
             }
 
             var message = missingPluginsConsoleMessage.ToString();
@@ -29,6 +31,9 @@
             InitializeMapForNewWipe();
         }
 
-
+        private void Unload()
+        {
+            _factionsMapMarkerManager.DestroyMarkers();
+        }
     }
 }

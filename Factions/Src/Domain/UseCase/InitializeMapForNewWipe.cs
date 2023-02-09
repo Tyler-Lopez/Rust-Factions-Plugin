@@ -4,14 +4,14 @@
     {
         public void InitializeMapForNewWipe()
         {
-            // For each grid on the map create a ZoneManager zone for them
-            var map = new Map(ConVar.Server.worldsize);
+            // For each factionsGrid on the map create a ZoneManager zone for them
+            var map = new FactionsMap(ConVar.Server.worldsize);
             foreach (var grid in map)
             {
                 _zoneManagerRepository.CreateZoneForGrid(
-                    grid: grid,
+                    factionsGrid: grid,
                     center: map.GetGridCenter(grid),
-                    gridSize: Map.GetGridSize()
+                    gridSize: FactionsMap.GetGridSize()
                 );
             }
         }

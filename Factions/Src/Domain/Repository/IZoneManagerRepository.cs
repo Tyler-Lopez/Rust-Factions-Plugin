@@ -32,7 +32,7 @@
             /// <returns>Returns a string[] of IDs for zones the specified player is currently in, or null if none found</returns>
             string[] GetPlayerZoneIds(BasePlayer player);
 
-            bool CreateZoneForGrid(Grid grid, Vector2 center, float gridSize);
+            bool CreateZoneForGrid(FactionsGrid factionsGrid, Vector2 center, float gridSize);
         }
     }
 }
