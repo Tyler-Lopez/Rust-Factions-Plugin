@@ -17,8 +17,10 @@
             _landClaimMarkers.TryGetValue(gridString, out prevMarker);
             prevMarker?.Kill();
 
-            // Update tracked marker and network it to all online players
+            // Update tracked marker reference
             _landClaimMarkers[gridString] = marker;
+            
+            // Network the new marker to all active players excluding those hiding land claims
             foreach (var basePlayer in BasePlayer.activePlayerList)
             {
                 if (!_playersHidingLandClaimMarkers.Contains(basePlayer.userID))
@@ -28,11 +30,12 @@
             }
         }
 
-        // Networks all land claim markers to all players excluding 
+        // Networks all land claim markers to all players excluding those hiding land claims
         private void NetworkAllLandClaimMarkers(bool respawn = false)
         {
             foreach (var landClaimMarker in _landClaimMarkers.Values)
             {
+                // If necessary, respawn every land claim marker before networking them
                 if (respawn) landClaimMarker.Respawn();
                 foreach (var basePlayer in BasePlayer.activePlayerList)
                 {
@@ -44,6 +47,7 @@
             }
         }
 
+        // Invoked when a player toggles their land claim marker visibility
         public void PlayerToggleLandClaimMarkerVisibility(BasePlayer player)
         {
             if (_playersHidingLandClaimMarkers.Contains(player.userID))
@@ -61,6 +65,7 @@
             }
         }
 
+        // Destroys all managed markers
         public void DestroyMarkers()
         {
             foreach (var landClaimMarker in _landClaimMarkers.Values)
