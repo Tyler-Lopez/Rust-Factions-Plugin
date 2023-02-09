@@ -1,6 +1,9 @@
 ﻿namespace Oxide.Plugins
 {
     using UnityEngine;
+    using System.Collections.Generic;
+    using Network;
+
     public interface IFactionsMapMarkerSpecification
     {
         Vector2 GetLocation();
@@ -43,18 +46,21 @@
     public sealed class FactionsMapMarker
     {
         private MapMarkerGenericRadius _marker;
+        private Timer _pendingTimer = null;
 
         private static class Constants
         {
             public const string EntityPrefab = "assets/prefabs/tools/map/genericradiusmarker.prefab";
             public const string MarkerUpdateRpcFunction = "MarkerUpdate";
             public const float ClanClaimAlpha = 0.5f;
+            public const float SubscriptionAddDelaySeconds = 10f;
         }
 
         public FactionsMapMarker(IFactionsMapMarkerSpecification specification)
         {
             Vector2 position = specification.GetLocation();
-            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, position).GetComponent<MapMarkerGenericRadius>();
+            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, position)
+                .GetComponent<MapMarkerGenericRadius>();
 
             var claim = (ClanClaim)specification;
             if (claim != null)
@@ -73,25 +79,28 @@
             var prevRadius = _marker.radius;
             var prevAlpha = _marker.alpha;
             _marker.Kill();
-            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, _marker.ServerPosition).GetComponent<MapMarkerGenericRadius>();
+            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, _marker.ServerPosition)
+                .GetComponent<MapMarkerGenericRadius>();
             _marker.color1 = prevColor;
             _marker.radius = prevRadius;
             _marker.alpha = prevAlpha;
             _marker.Spawn();
         }
 
-        public void NetworkMarkerToPlayer(BasePlayer player)
+        public void PlayerSubscriptionAdd(BasePlayer player, PluginTimers timer)
         {
-            var color = new Vector3(_marker.color1.r, _marker.color1.g, _marker.color1.b);
-            _marker.ClientRPCPlayer<Vector3, float, Vector3, float, float>(
-                sourceConnection: null,
-                player: player,
-                funcName: Constants.MarkerUpdateRpcFunction,
-                arg1: color,
-                arg2: _marker.alpha,
-                arg3: color,
-                arg4: _marker.alpha,
-                arg5: _marker.radius);
+            _marker.OnNetworkSubscribersEnter(new List<Connection>() { player.Connection });
+            // Adding network subscribers is an async queue, so sending the update must be on a slight delay
+            _pendingTimer?.Destroy();
+            _pendingTimer = timer.Once(Constants.SubscriptionAddDelaySeconds, () =>
+            {
+                _marker.SendUpdate();
+            });
+        }
+
+        public void PlayerSubscriptionRemove(BasePlayer player)
+        {
+            _marker.OnNetworkSubscribersLeave(new List<Connection>() { player.Connection });
         }
 
         public void Kill()

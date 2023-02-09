@@ -48,5 +48,4 @@
             return $"{_columnString}{Constants.RowColumnDelimiter}{_row}";
         }
     }
-
 }

@@ -1,40 +1,17 @@
 ﻿// Requires: ZoneManager
-
-using System;
-using System.Linq;
-using Network;
-using Oxide.Core.Plugins;
-using UnityEngine;
-
 namespace Oxide.Plugins
 {
     [Info("Factions", "Rust Factions", "1.0.0")]
     [Description("Pending Description")]
     public partial class Factions : RustPlugin
     {
-        #region Global Variables
+        #region Plugin Declaration and Global Variables
         private IZoneManagerRepository _zoneManagerRepository;
         private FactionsMapMarkerManager _factionsMapMarkerManager;
-
-        public void Blah(BasePlayer player, Vector2 position)
-        {
-            /*
-            Puts("Here in blah...");
-            MapMarkerGenericRadius marker = GameManager.server.CreateEntity("assets/prefabs/tools/map/genericradiusmarker.prefab", position).GetComponent<MapMarkerGenericRadius>();
-            marker.Spawn();
-            Puts("spawned");
-            var color = new Vector3(1f, 1f, 1f);
-            marker.ClientRPCPlayer<Vector3, float, Vector3, float, float>((Connection)null, player, "MarkerUpdate", color, 50f, color, 1f, 50f);
-            */
-        }
         #endregion
-
-        class MyMapMarker : MapMarker
-        {
-
-        }
     }
-}﻿namespace Oxide.Plugins
+}
+﻿namespace Oxide.Plugins
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -179,7 +156,6 @@ namespace Oxide.Plugins
             return $"{_columnString}{Constants.RowColumnDelimiter}{_row}";
         }
     }
-
 }
 ﻿namespace Oxide.Plugins
 {
@@ -267,6 +243,9 @@ namespace Oxide.Plugins
 ﻿namespace Oxide.Plugins
 {
     using UnityEngine;
+    using System.Collections.Generic;
+    using Network;
+
     public interface IFactionsMapMarkerSpecification
     {
         Vector2 GetLocation();
@@ -309,18 +288,21 @@ namespace Oxide.Plugins
     public sealed class FactionsMapMarker
     {
         private MapMarkerGenericRadius _marker;
+        private Timer _pendingTimer = null;
 
         private static class Constants
         {
             public const string EntityPrefab = "assets/prefabs/tools/map/genericradiusmarker.prefab";
             public const string MarkerUpdateRpcFunction = "MarkerUpdate";
             public const float ClanClaimAlpha = 0.5f;
+            public const float SubscriptionAddDelaySeconds = 10f;
         }
 
         public FactionsMapMarker(IFactionsMapMarkerSpecification specification)
         {
             Vector2 position = specification.GetLocation();
-            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, position).GetComponent<MapMarkerGenericRadius>();
+            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, position)
+                .GetComponent<MapMarkerGenericRadius>();
 
             var claim = (ClanClaim)specification;
             if (claim != null)
@@ -339,25 +321,28 @@ namespace Oxide.Plugins
             var prevRadius = _marker.radius;
             var prevAlpha = _marker.alpha;
             _marker.Kill();
-            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, _marker.ServerPosition).GetComponent<MapMarkerGenericRadius>();
+            _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, _marker.ServerPosition)
+                .GetComponent<MapMarkerGenericRadius>();
             _marker.color1 = prevColor;
             _marker.radius = prevRadius;
             _marker.alpha = prevAlpha;
             _marker.Spawn();
         }
 
-        public void NetworkMarkerToPlayer(BasePlayer player)
+        public void PlayerSubscriptionAdd(BasePlayer player, PluginTimers timer)
         {
-            var color = new Vector3(_marker.color1.r, _marker.color1.g, _marker.color1.b);
-            _marker.ClientRPCPlayer<Vector3, float, Vector3, float, float>(
-                sourceConnection: null,
-                player: player,
-                funcName: Constants.MarkerUpdateRpcFunction,
-                arg1: color,
-                arg2: _marker.alpha,
-                arg3: color,
-                arg4: _marker.alpha,
-                arg5: _marker.radius);
+            _marker.OnNetworkSubscribersEnter(new List<Connection>() { player.Connection });
+            // Adding network subscribers is an async queue, so sending the update must be on a slight delay
+            _pendingTimer?.Destroy();
+            _pendingTimer = timer.Once(Constants.SubscriptionAddDelaySeconds, () =>
+            {
+                _marker.SendUpdate();
+            });
+        }
+
+        public void PlayerSubscriptionRemove(BasePlayer player)
+        {
+            _marker.OnNetworkSubscribersLeave(new List<Connection>() { player.Connection });
         }
 
         public void Kill()
@@ -368,67 +353,56 @@ namespace Oxide.Plugins
 }
 ﻿namespace Oxide.Plugins
 {
-    using UnityEngine;
-    using System;
     using System.Collections.Generic;
-
+    using System.Linq;
     public class FactionsMapMarkerManager
     {
-        private readonly Dictionary<string, FactionsMapMarker> _landClaimMarkers = new Dictionary<string, FactionsMapMarker>();
+        private readonly Dictionary<string, FactionsMapMarker> _landClaimMarkers =
+            new Dictionary<string, FactionsMapMarker>();
+
         private readonly HashSet<ulong> _playersHidingLandClaimMarkers = new HashSet<ulong>();
 
-        // Add a new Land Claim type FactionsMapMarker to the Manager
-        public void AddLandClaimMarker(string gridString, FactionsMapMarker marker)
+        /** Add a new Land Claim type FactionsMapMarker to the Manager **/
+        public void AddLandClaimMarker(string gridString, FactionsMapMarker marker, PluginTimers timer)
         {
             // Kill and remove any previous marker, if it exists
             FactionsMapMarker prevMarker;
             _landClaimMarkers.TryGetValue(gridString, out prevMarker);
             prevMarker?.Kill();
 
-            // Update tracked marker and network it to all online players
+            // Update tracked marker reference
             _landClaimMarkers[gridString] = marker;
-            foreach (var basePlayer in BasePlayer.activePlayerList)
+
+            // Subscribe all players who are not hiding land claim markers to the new marker
+            foreach (var player in BasePlayer.activePlayerList.Where(player => !_playersHidingLandClaimMarkers.Contains(player.userID)))
             {
-                if (!_playersHidingLandClaimMarkers.Contains(basePlayer.userID))
-                {
-                    marker.NetworkMarkerToPlayer(basePlayer);
-                }
+                marker.PlayerSubscriptionAdd(player, timer);
             }
         }
 
-        // Networks all land claim markers to all players excluding 
-        private void NetworkAllLandClaimMarkers(bool respawn = false)
-        {
-            foreach (var landClaimMarker in _landClaimMarkers.Values)
-            {
-                if (respawn) landClaimMarker.Respawn();
-                foreach (var basePlayer in BasePlayer.activePlayerList)
-                {
-                    if (!_playersHidingLandClaimMarkers.Contains(basePlayer.userID))
-                    {
-                        landClaimMarker.NetworkMarkerToPlayer(basePlayer);
-                    }
-                }
-            }
-        }
-
-        public void PlayerToggleLandClaimMarkerVisibility(BasePlayer player)
+        /** Invoked when a player toggles their land claim marker visibility **/
+        public void PlayerToggleLandClaimMarkerVisibility(BasePlayer player, PluginTimers timer)
         {
             if (_playersHidingLandClaimMarkers.Contains(player.userID))
             {
                 _playersHidingLandClaimMarkers.Remove(player.userID);
-                foreach (var factionsMapMarker in _landClaimMarkers.Values)
+
+                foreach (var landClaimMarker in _landClaimMarkers.Values)
                 {
-                    factionsMapMarker.NetworkMarkerToPlayer(player);
+                    landClaimMarker.PlayerSubscriptionAdd(player, timer);
                 }
             }
             else
             {
                 _playersHidingLandClaimMarkers.Add(player.userID);
-                NetworkAllLandClaimMarkers(respawn: true);
+                foreach (var landClaimMarker in _landClaimMarkers.Values)
+                {
+                    landClaimMarker.PlayerSubscriptionRemove(player);
+                }
             }
         }
 
+        // Destroys all managed markers
         public void DestroyMarkers()
         {
             foreach (var landClaimMarker in _landClaimMarkers.Values)
@@ -554,13 +528,13 @@ namespace Oxide.Plugins
                 location: Vector2.zero
             ));
 
-            _factionsMapMarkerManager.AddLandClaimMarker("A:6", myMapMarker);
+            _factionsMapMarkerManager.AddLandClaimMarker("A:6", myMapMarker, timer);
         }
 
         [ChatCommand("test2")]
         private void OnCommandTwo(BasePlayer player, string command, string[] args)
         {
-            _factionsMapMarkerManager.PlayerToggleLandClaimMarkerVisibility(player);
+            _factionsMapMarkerManager.PlayerToggleLandClaimMarkerVisibility(player, timer);
         }
     }
 }

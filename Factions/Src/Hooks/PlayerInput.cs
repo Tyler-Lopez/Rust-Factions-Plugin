@@ -18,13 +18,13 @@
                 location: Vector2.zero
             ));
 
-            _factionsMapMarkerManager.AddLandClaimMarker("A:6", myMapMarker);
+            _factionsMapMarkerManager.AddLandClaimMarker("A:6", myMapMarker, timer);
         }
 
         [ChatCommand("test2")]
         private void OnCommandTwo(BasePlayer player, string command, string[] args)
         {
-            _factionsMapMarkerManager.PlayerToggleLandClaimMarkerVisibility(player);
+            _factionsMapMarkerManager.PlayerToggleLandClaimMarkerVisibility(player, timer);
         }
     }
 }
