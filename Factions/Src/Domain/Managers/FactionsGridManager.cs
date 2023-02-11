@@ -5,14 +5,14 @@
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
-    public sealed class FactionsMap : IEnumerable<FactionsGrid>
+    public sealed class FactionsGridManager : IEnumerable<FactionsGrid>
     {
         private readonly int _columns;
         private readonly int _rows;
         private readonly float _gridOffset;
         private List<FactionsGrid> _grids;
 
-        public FactionsMap(int worldSize)
+        public FactionsGridManager(int worldSize)
         {
             // The in-game map is always square
             _columns = (int)Mathf.Floor(worldSize / Constants.GridCellSize);

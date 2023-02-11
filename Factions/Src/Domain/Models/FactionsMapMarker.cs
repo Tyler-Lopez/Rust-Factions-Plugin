@@ -61,7 +61,7 @@
             Vector2 position = specification.GetLocation();
             _marker = GameManager.server.CreateEntity(Constants.EntityPrefab, position)
                 .GetComponent<MapMarkerGenericRadius>();
-
+            
             var claim = (ClanClaim)specification;
             if (claim != null)
             {
