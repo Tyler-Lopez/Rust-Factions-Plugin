@@ -7,7 +7,7 @@
 
     partial class Factions
     {
-        private void Loaded()
+        private void Init()
         {
             var manager = Manager;
 
@@ -27,13 +27,16 @@
             {
                 Puts(message);
             }
-
-            InitializeMapForNewWipe();
         }
 
         private void Unload()
         {
             _factionsMapMarkerManager.DestroyMarkers();
+        }
+
+        private void OnNewSave(string filename)
+        {
+            InitializeMapForNewWipe();
         }
     }
 }

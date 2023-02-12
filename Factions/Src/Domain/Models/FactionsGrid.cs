@@ -1,6 +1,9 @@
-﻿namespace Oxide.Plugins
+﻿using Newtonsoft.Json;
+
+namespace Oxide.Plugins
 {
     using System.Text;
+
     public class FactionsGrid
     {
         private readonly byte _columnByte;
